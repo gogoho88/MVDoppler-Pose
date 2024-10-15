@@ -1,0 +1,66 @@
+defaults:
+  - fusion: multi_cross
+  - _self_
+
+project: 'keypoint'
+
+preprocess:
+  flag_preprocess: False    # Run Preprocess
+  flag_statistics: False     # Analyze Statistics
+  save_keypoint: False
+  save_radarPCL: False
+  load:
+    radarpcl: '_preprocessed_LPF-0.05'
+
+train: 
+  learning_rate: 1e-4
+  alpha_limb: 0.5
+  alpha_limb_motion: 0.05
+  weight_decay: 0.01
+  epoch: 1024
+  batch_size: 16
+  num_workers: 4
+  delta: 0.01  # for loss
+  traintest_class: 'all'     # 'all': all class, 'normal': only normal
+  traintest_split: 'random'  # 'random': random split, 'subject_independent': subject-indep. split, 'class_independent_{class}': class-indep. split
+  model: 'mobileVit_xs'
+  GPU_idx: '0'
+  
+
+model:
+  # 99
+  encoder_input: 'multi'    # multi: multi-view, single: single_view
+  decoder_input: 'all'      # all: mD+rng, vel: only vel, rng: only rng
+
+wandb:
+  use_wandb: False
+  project: 'mmWave_Keypoint'
+
+transforms:
+  win_sec: 3.       # default: 3
+  win_size: 512   # mD (T)
+  Dop_size: 128   # mD (F)
+  win_size_rng: 128   # Rng (T)
+  R_size_rng: 128     # Rng (R)
+  time_win_start: 0
+  ymap_pattern: {'normal':0, 'phone_call':1, 'pockets':2, 'texting':3}
+  select_radar_idx: [0, 1]  # list of radar_idx
+  test_ndiv: 10
+  radar1_mean: 2.8967
+  radar1_std: 2.4292
+  radar2_mean: 2.9696
+  radar2_std: 2.3260
+  radar1_rng_mean: 43.9563
+  radar1_rng_std: 3.2869
+  radar2_rng_mean: 44.2900
+  radar2_rng_std: 3.3434
+    
+
+result:
+  save_result: False
+  csv_file: '/data/users/jaeho/temp/des_all_adjust.csv'
+  data_dir: '/data/users/jaeho/temp/'
+  name: 'Temp'
+  path_des: '/data/users/jaeho/mmWave_3DKeypoint/result_output/save/${wandb.project}/'
+  output_mode: gait
+  labels: ['normal', 'phone_call', 'pockets', 'texting']
