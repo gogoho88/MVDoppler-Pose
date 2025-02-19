@@ -52,3 +52,6 @@ transforms:
 cd mmWave-Pose
 python main_multi_keypoint.py
 ```
+
+## License
+The `MVDoppler-Pose` code and dataset are published under the CC BY-NC-ND License, and all codes are published under the Apache License 2.0.
