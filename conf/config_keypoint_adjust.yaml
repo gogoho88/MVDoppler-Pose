@@ -58,9 +58,9 @@ transforms:
 
 result:
   save_result: False
-  csv_file: '/data/users/jaeho/temp/des_all_adjust.csv'
-  data_dir: '/data/users/jaeho/temp/'
+  csv_file: '/meta_data/des_all.csv'
+  data_dir: '/data/'
   name: 'Temp'
-  path_des: '/data/users/jaeho/mmWave_3DKeypoint/result_output/save/${wandb.project}/'
+  path_des: '/'
   output_mode: gait
   labels: ['normal', 'phone_call', 'pockets', 'texting']
