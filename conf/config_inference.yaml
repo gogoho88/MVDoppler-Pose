@@ -1,0 +1,4 @@
+path_model: '/data/mmWave_ckp.pt'
+path_args: '/data/mmWave_args.yaml'
+path_save: '/workspace/'
+test_episode: '20220610130106'

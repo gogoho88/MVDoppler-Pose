@@ -47,10 +47,23 @@ transforms:
 
 ## Train the Baseline Model
 * Specify data folder and metadata file through `data_dir` and `csv_file` in `/conf/config_keypoint_adjust.yaml`
-* Rut it through python
+* Rut it through Python
 ```
 cd mmWave-Pose
 python main_multi_keypoint.py
+```
+
+## Model Inference and Checkpoints
+Trained model parameters(`mmWave_ckp.pt`) and corresponding settings(`mmWave_args.yaml`) can be found from this [Google Drive foler](https://drive.google.com/drive/folders/14V7mFEtczBaoboiaauckpzQSx9Bv3Sh4?usp=share_link).
+
+To directly do inference using the trained model, you need to change the config file:
+* In `/conf/config_inference.yaml`, specify the path of `mmWave_ckp.pt` and `mmWave_args.yaml` with `path_model` and `path_args`, respectively.
+* Specify the path where the result will be saved in `path_save`
+* Specify the name of the episode you want to test in `test_episode` (Default episode: `'20220610130106'`)
+* Run it through Python
+```
+cd mmWave-Pose
+python main_inference_keypoint.py
 ```
 
 ## License
