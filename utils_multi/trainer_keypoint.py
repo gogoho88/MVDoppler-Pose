@@ -80,25 +80,4 @@ class Trainer:
                     'test_PCK_hand': test_loss['PCK'][:,:,:,(12,13,15,16)].mean()*100,  
                     })
 
-            # save the model
-            if self.args.result.save_result:
-                save_path_model = self.args.result.path_des+'model/'
-                save_path_conf = self.args.result.path_des+'conf/'
-                os.makedirs(self.args.result.path_des, exist_ok=True)
-                os.makedirs(save_path_model, exist_ok=True)
-                os.makedirs(save_path_conf, exist_ok=True)
-                ## save args
-                with open(os.path.join(save_path_conf, self.args.result.name+'.yaml'), "w") as f:
-                    OmegaConf.save(self.args, f)
-                ## save model
-                test_loss_temp = test_loss['MPJPE'].mean()
-                if test_loss_temp < test_loss_best:
-                    test_loss_best = test_loss_temp.copy()
-                    if epoch > 50:
-                        ## best model
-                        save_result_keypoint(model=self.model, path=os.path.join(save_path_model, self.args.result.name+'_best.pt'))
-                if epoch==(Epoch_num-1):
-                    ## last model
-                    save_result_keypoint(model=self.model, path=os.path.join(save_path_model, self.args.result.name+'_last.pt'))
-
             lr_scheduler.step()

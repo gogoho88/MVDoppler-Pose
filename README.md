@@ -49,7 +49,7 @@ transforms:
 * Specify data folder and metadata file through `data_dir` and `csv_file` in `/conf/config_keypoint_adjust.yaml`
 * Rut it through Python
 ```
-cd mmWave-Pose
+cd MVDoppler-Pose
 python main_multi_keypoint.py
 ```
 
@@ -62,7 +62,7 @@ To directly do inference using the trained model, you need to change the config 
 * Specify the name of the episode you want to test in `test_episode` (Default episode: `'20220610130106'`)
 * Run it through Python
 ```
-cd mmWave-Pose
+cd MVDoppler-Pose
 python main_inference_keypoint.py
 ```
 
