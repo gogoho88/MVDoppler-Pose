@@ -121,17 +121,14 @@ class RadarDataset_Keypoint(Dataset):
         folder = fname['Folder']
         episode = str(fname['Episode'])
         radar_path      = os.path.join(self.data_dir, folder, 'radar_v2', episode+'.h5')
-        radar_pcl_path  = os.path.join(self.data_dir, folder, 'radar', episode + self.load.radarpcl + '.pkl')
         keypoint_path   = os.path.join(self.data_dir, folder, episode)
 
         radar_dat, radar_rng, radar_des = read_h5_basic(radar_path)
-        radar_pcl = pd.DataFrame(pickle.load( open( radar_pcl_path, "rb" ) ))
-        keypoint_3D = np.load(keypoint_path + '/output_3D/keypoint3D_adjusted.npz', allow_pickle=True)['reconstruction']    # 3D keypoint
+        keypoint_3D = np.load(keypoint_path + '/output_3D/keypoints.npz', allow_pickle=True)['reconstruction']    # 3D keypoint
 
         data = {}
         data['radar'] = radar_dat
         data['radar_rng'] = radar_rng
-        data['radar_pcl'] = radar_pcl
         data['keypoint'] = keypoint_3D
         data['des'] = fname
 
@@ -151,7 +148,7 @@ class RadarDataset_Keypoint(Dataset):
         if self.flag=='train':
             return data['radar'], data['radar_rng'], data['keypoint']
         elif self.flag=='test':
-            return data['radar'], data['radar_rng'], data['keypoint'], data['radar_pcl'], radar_des
+            return data['radar'], data['radar_rng'], data['keypoint'], radar_des
         elif self.flag=='test_video':
-            return data['radar'], data['radar_rng'], (data['keypoint'], data['keypoint_startpoint']), data['radar_pcl'], radar_des, (folder, episode)
+            return data['radar'], data['radar_rng'], (data['keypoint'], data['keypoint_startpoint']), radar_des, (folder, episode)
         

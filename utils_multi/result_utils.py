@@ -299,15 +299,13 @@ def test_keypoint(data_test, device, model, output_pred=False, output_temporal=F
     PCK35_all_list = []
     MAE_all_list = []
     if output_pred:
-        coord = []
         y_test = []
         y_test_pred = []
-    for idx, (x_batch, x_R_batch, y_batch, x_pcl, des) in enumerate(data_test):
+    for idx, (x_batch, x_R_batch, y_batch, des) in enumerate(data_test):
         with torch.no_grad():
             x_batch = x_batch.to(device, dtype=torch.float)
             x_R_batch = x_R_batch.to(device, dtype=torch.float)
             y_batch = y_batch.to(device, dtype=torch.float) 
-            x_pcl = x_pcl.to(device, dtype=torch.float) 
 
             B,N_div,N_R,F,T = x_batch.size()
             _,_,_,R_Rng,T_Rng = x_R_batch.size()
@@ -332,7 +330,6 @@ def test_keypoint(data_test, device, model, output_pred=False, output_temporal=F
             PCK_all_35 = PCK(output, y_batch, threshold=0.25, flag_temporal=output_temporal)
             MAE_all = mae(output, y_batch, flag_temporal=output_temporal)
             if output_pred:
-                coord.append(x_pcl.to('cpu').numpy())
                 y_test.append(y_batch.to('cpu').numpy())
                 y_test_pred.append(output.to('cpu').numpy())
             
@@ -374,14 +371,12 @@ def test_keypoint(data_test, device, model, output_pred=False, output_temporal=F
     test_loss['PCK25'] = PCK35_all_array
     test_loss['MAE'] = MAE_all_array
     if output_pred:
-        coord_array = np.stack(coord[:-1]).reshape(-1,N_div,90,4)
-        coord_array = np.append(coord_array,coord[-1], axis=0)
         y_test_array = np.stack(y_test[:-1]).reshape(-1,N_div,16,17,3)
         y_test_array = np.append(y_test_array,y_test[-1], axis=0)
         y_test_pred_array = np.stack(y_test_pred[:-1]).reshape(-1,N_div,16,17,3)
         y_test_pred_array = np.append(y_test_pred_array,y_test_pred[-1], axis=0)
     if output_pred:
-        return test_loss, des_test, (y_test_array, y_test_pred_array), coord_array
+        return test_loss, des_test, (y_test_array, y_test_pred_array)
     else:
         return test_loss, des_test
     
@@ -486,36 +481,6 @@ def analyze_result_2D(summary, test_coord, condition_coord, metric_list, limb_li
             vxvy_grid = vxvy_grid/numvxvy_grid
             summary_2D[metric][key_joint]['xy'] = xy_grid
             summary_2D[metric][key_joint]['vxvy'] = vxvy_grid
-    ######## numxy, numvxvy Plot
-    # save_path='/workspace/0_temp/plot_heatmap/'
-    # X, Y = np.meshgrid(x_vec,y_vec)
-    # VX, VY = np.meshgrid(vx_vec,vy_vec) 
-    # numxy_grid = np.where(numxy_grid<1,np.nan,numxy_grid)
-    # plt.pcolormesh(X,Y,numxy_grid, cmap='jet')
-    # plt.gca().collections[0].set_clim(0,70)
-    # clb = plt.colorbar()
-    # clb.set_label('Number of Clips')
-    # # plt.title(f'{key}')
-    # plt.xlabel('x [m]')
-    # plt.ylabel('y [m]')
-    # plt.xticks(np.linspace(-5,5,9), rotation=45)
-    # plt.yticks(np.linspace(5,15,9))
-    # plt.show()
-    # plt.savefig(f'{save_path}'+f'numxy.jpg', dpi=1200, bbox_inches='tight')
-    # plt.close()
-    # numvxvy_grid = np.where(numvxvy_grid<1,np.nan,numvxvy_grid)
-    # plt.pcolormesh(VX,VY,numvxvy_grid, cmap='jet')
-    # plt.gca().collections[0].set_clim(0,70)
-    # clb = plt.colorbar()
-    # clb.set_label('Number of Clips')
-    # # plt.title(f'{key}')
-    # plt.xlabel('vx [m/s]')
-    # plt.ylabel('vy [m/s]')
-    # plt.xticks(np.linspace(-1.6,1.6,9), rotation=45)
-    # plt.yticks(np.linspace(-1.6,1.6,9))
-    # plt.show()
-    # plt.savefig(f'{save_path}'+f'numvxvy.jpg', dpi=1200, bbox_inches='tight')
-    # plt.close()
     return summary_2D
 
 def analyze_result_1D(summary, coord, condition_coord, metric_list, limb_list, summary_1D_vec, des, xvec=None):

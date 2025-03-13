@@ -23,88 +23,6 @@ def medfilt_keypoint(keypoint, kernel_size):
             keypoint_new[:,body,coord] = signal.medfilt(keypoint[:,body,coord], kernel_size)
     return keypoint_new
 
-def Preprocess_Keypoint(args):
-    """
-    Preprocess & Save the pre-processed data
-    """
-    # load & clean des
-    des_all = pd.read_csv(args.result.csv_file, index_col=0)
-    val_idx=((des_all['len_radar']==1985)&
-            (des_all['len_raw_vid']>=300)&
-            (des_all['len_raw_vid']==des_all['len_keypoint_3D'])&
-            (des_all['n_detect_0']<15)
-            )
-    des_clean = des_all[val_idx]
-
-    composed_all = transforms.Compose([
-        ToCHWTensor(apply=['keypoint']),
-        NormalizeKeypoint(),
-        LPFpoint(apply=['radar_pcl', 'keypoint']),
-        ResizeRadarPcl(),
-    ])
-    composed_keypoint = transforms.Compose([
-        ToCHWTensor(apply=['keypoint']),
-        LPFpoint(apply=['keypoint']),
-    ])
-    composed_radarpcl = transforms.Compose([
-        LPFpoint(apply=['radar_pcl']),
-        ResizeRadarPcl(),
-    ])
-
-    data_dir=args.result.data_dir
-    for idx in tqdm(range(len(des_clean))):
-        fname = des_clean.iloc[idx]
-        folder = fname['Folder']
-        episode = str(fname['Episode'])
-        radar_path = os.path.join(data_dir, folder, 'radar_v2', episode+'.h5')
-        radar_pcl_path = os.path.join(data_dir, folder, 'radar', episode+'.pkl')
-        keypoint_path = os.path.join(data_dir, folder, episode)
-
-        radar_dat, radar_rng, radar_des = read_h5_basic(radar_path)
-        radar_pcl = pd.DataFrame(pickle.load( open( radar_pcl_path, "rb" ) ))
-
-        ###### load adjusted keypoint
-        keypoint_path_4dhuman = '/workspace/0_temp/4dhuman/results/'
-        keypoint_info = joblib.load(keypoint_path_4dhuman + f'/demo_{episode}.pkl')
-        KEYPOINT_LIST_17 = [39, 28, 29, 30, 27, 26, 25, 41, 37, 42, 43, 33, 32, 31, 34, 35, 36]
-        frame_list = list(keypoint_info.keys())
-        keypoint_3D_temp = [keypoint_info[frame]['3d_joints'] for frame in frame_list]
-        nsubject_keypoint_3D = np.array([len(keypoint) for keypoint in keypoint_3D_temp])
-
-        T           = len(keypoint_3D_temp)
-        output_sel = np.zeros((T,17,3))
-        n_idx       = 0                 # idx of person
-        for t_idx in range(T):
-            if len(keypoint_3D_temp[t_idx])<1:
-                continue
-            keypoint_3d_t = keypoint_3D_temp[t_idx][n_idx][KEYPOINT_LIST_17,:]
-            keypoint_3d_t -= keypoint_3d_t[[0], :]         # align origin
-            output_sel[t_idx,:,:] = keypoint_3d_t
-        output_filt = medfilt_keypoint(output_sel, kernel_size = 7)
-        keypoint_3D = output_filt
-        #######
-
-        data = {}
-        data['radar'] = radar_dat
-        data['radar_rng'] = radar_rng
-        data['radar_pcl'] = radar_pcl
-        data['keypoint'] = keypoint_3D
-        data['des'] = fname
-
-        
-        # pre-processing
-        data = composed_all(data) 
-
-        # Save
-        ## save preprocessed keypoint
-        if args.preprocess.save_keypoint:
-            np.savez_compressed(keypoint_path + '/output_3D/keypoint3D_adjusted.npz', 
-                                reconstruction=np.array(data['keypoint']))
-        ## save preprocessed radar_pcl
-        if args.preprocess.save_radarPCL:
-            with open(os.path.join(data_dir, folder, 'radar', episode+'_preprocessed_LPF-0.05.pkl'),"wb") as f:
-                pickle.dump(data['radar_pcl'].to_dict('records'), f)
-
 def Analyze_statistics(args):
     """
     Preprocess & Save the pre-processed data
@@ -123,7 +41,7 @@ def Analyze_statistics(args):
     composed_test = transforms.Compose([
         ToCHWTensor(apply=['radar', 'keypoint']),
         # RotateKeypoint(),
-        UniformCrop_Time(win_sec=args.transforms.win_sec, n_div=args.transforms.test_ndiv, apply=['radar', 'radar_pcl', 'keypoint']),
+        UniformCrop_Time(win_sec=args.transforms.win_sec, n_div=args.transforms.test_ndiv, apply=['radar', 'keypoint']),
         ResizeRadar(size_mD=size_radar, size_rng=size_radar_rng, flag_train=False),
         ResizeKeypoint(len=16,flag_train=False),
     ])
@@ -137,17 +55,14 @@ def Analyze_statistics(args):
         folder = fname['Folder']
         episode = str(fname['Episode'])
         radar_path = os.path.join(data_dir, folder, 'radar_v2', episode+'.h5')
-        radar_pcl_path = os.path.join(data_dir, folder, 'radar', episode+'_preprocessed_LPF-0.05.pkl')
         keypoint_path = os.path.join(data_dir, folder, episode)
 
         radar_dat, radar_rng, radar_des = read_h5_basic(radar_path)
-        radar_pcl = pd.DataFrame(pickle.load( open( radar_pcl_path, "rb" ) ))
-        keypoint_3D = np.load(keypoint_path + '/output_3D/keypoint3D_adjusted.npz', allow_pickle=True)['reconstruction']    # 3D keypoint
+        keypoint_3D = np.load(keypoint_path + '/output_3D/keypoints.npz', allow_pickle=True)['reconstruction']    # 3D keypoint
 
         data = {}
         data['radar'] = radar_dat
         data['radar_rng'] = radar_rng
-        data['radar_pcl'] = radar_pcl
         data['keypoint'] = keypoint_3D
         data['des'] = fname
         
@@ -230,16 +145,16 @@ def LoadDataset_Keypoint(args):
     ### Compose the transforms on train set
     composed_train = transforms.Compose([
         ToCHWTensor(apply=['radar', 'keypoint']),
-        RandomizeCrop_Time(win_sec=args.transforms.win_sec, apply=['radar', 'radar_pcl', 'keypoint']),
+        RandomizeCrop_Time(win_sec=args.transforms.win_sec, apply=['radar', 'keypoint']),
         ResizeRadar(size_mD=size_radar, size_rng=size_radar_rng, flag_train=True),
-        RandFlip(p=0.5, apply=['radar', 'radar_pcl', 'keypoint']),
+        RandFlip(p=0.5, apply=['radar', 'keypoint']),
         ResizeKeypoint(len=16,flag_train=True),
         NormalizeRadar(mean_mD=(mean1,mean2), std_mD=(std1,std2), mean_rng=(mean_rng1,mean_rng2), std_rng=(std_rng1,std_rng2), flag_train=True),
     ])
     ### Compose the transforms on valid and test sets
     composed_test = transforms.Compose([
         ToCHWTensor(apply=['radar', 'keypoint']),
-        UniformCrop_Time(win_sec=args.transforms.win_sec, n_div=args.transforms.test_ndiv, apply=['radar', 'radar_pcl', 'keypoint']),
+        UniformCrop_Time(win_sec=args.transforms.win_sec, n_div=args.transforms.test_ndiv, apply=['radar', 'keypoint']),
         ResizeRadar(size_mD=size_radar, size_rng=size_radar_rng, flag_train=False),
         ResizeKeypoint(len=16,flag_train=False),
         NormalizeRadar(mean_mD=(mean1,mean2), std_mD=(std1,std2), mean_rng=(mean_rng1,mean_rng2), std_rng=(std_rng1,std_rng2), flag_train=False),
@@ -248,7 +163,7 @@ def LoadDataset_Keypoint(args):
     ### test for video
     composed_test_video = transforms.Compose([
         ToCHWTensor(apply=['radar', 'keypoint']),
-        UniformCrop_Time(win_sec=args.transforms.win_sec, n_div=args.transforms.test_ndiv, apply=['radar', 'radar_pcl', 'keypoint']),
+        UniformCrop_Time(win_sec=args.transforms.win_sec, n_div=args.transforms.test_ndiv, apply=['radar', 'keypoint']),
         ResizeRadar(size_mD=size_radar, size_rng=size_radar_rng, flag_train=False),
         ResizeKeypoint(len=16,flag_train=False),
         NormalizeRadar(mean_mD=(mean1,mean2), std_mD=(std1,std2), mean_rng=(mean_rng1,mean_rng2), std_rng=(std_rng1,std_rng2), flag_train=False),
